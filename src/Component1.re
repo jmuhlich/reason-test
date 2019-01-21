@@ -34,23 +34,35 @@ module Decode = {
     };
 };
 
+type state = {user: option(user)};
+
+type action =
+  | ApiResponse(user);
+
 /* This is the basic component. */
-let component = ReasonReact.statelessComponent("Component1");
+let component = ReasonReact.reducerComponent("Component1");
 
 /* Your familiar handleClick from ReactJS. This mandatorily takes the payload,
    then the `self` record, which contains state (none here), `handle`, `reduce`
    and other utilities */
-let handleClick = (_event, _self) => {
+let handleClick = (_event, self) => {
   Js.log("clicked!");
   let _ =
     Js.Promise.(
-      Fetch.fetch("https://reqres.in/api/users")
+      Fetch.fetch("https://reqres.in/api/users/2")
       |> then_(Fetch.Response.json)
-      |> then_(json => Decode.usersResponse(json) |> Js.log |> resolve)
+      |> then_(json => {
+           let response = Decode.userResponse(json);
+           let user = response.data;
+           self.ReasonReact.send(ApiResponse(user));
+           resolve();
+         })
       |> catch(err => Js.log2("API error: ", err) |> resolve)
     );
   ();
 };
+
+let str = ReasonReact.string;
 
 /* `make` is the function that mandatorily takes `children` (if you want to use
    `JSX). `message` is a named argument, which simulates ReactJS props. Usage:
@@ -62,10 +74,24 @@ let handleClick = (_event, _self) => {
    `ReasonReact.element(Component1.make(~message="hello", [||]))` */
 let make = (~message, _children) => {
   ...component,
+  initialState: () => {user: None},
+  reducer: (action, _state) =>
+    switch (action) {
+    | ApiResponse(newUser) => ReasonReact.Update({user: Some(newUser)})
+    },
   render: self =>
     <div onClick=(self.handle(handleClick))>
-      (ReasonReact.string(message))
+      (str(message))
+      (
+        switch (self.state.user) {
+        | Some(user) =>
+          <p>
+            <img src=user.avatar />
+            <br />
+            (str(user.first_name ++ " " ++ user.last_name))
+          </p>
+        | None => <p />
+        }
+      )
     </div>,
 };
-
-let a: int = 123;
