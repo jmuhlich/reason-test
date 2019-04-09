@@ -48,7 +48,7 @@ module ApiClient = {
            let user = response.data;
            resolve(Result.Ok(user));
          })
-      |> catch(_err => resolve(Result.Error("API error")))
+      |> catch(_err => resolve(Result.Error({j|API error (user=$id)|j})))
     );
 };
 
@@ -61,7 +61,7 @@ type action =
   | ApiResponse(user)
   | ApiError(string);
 
-let component = ReasonReact.reducerComponent("Component1");
+let component = ReasonReact.reducerComponent("Component3");
 
 let handleClick = (_event, self) =>
   ApiClient.getUser(Random.int(25) + 1)
@@ -88,7 +88,12 @@ let make = _children => {
     },
   render: self =>
     <div onClick=(self.handle(handleClick))>
-      (str("Click to call API"))
+      (
+        str(
+          "Click this text to call the API (requests for user id > 12 are \
+           expected to fail)",
+        )
+      )
       (
         switch (self.state.user) {
         | Some(user) =>
