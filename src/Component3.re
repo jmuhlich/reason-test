@@ -39,7 +39,7 @@ module Decode = {
 type apiResult('a) = Js.Promise.t(Result.t('a, string));
 
 module ApiClient = {
-  let getUser = (id: int) : apiResult(user) =>
+  let getUser = (id: int): apiResult(user) =>
     Js.Promise.(
       Fetch.fetch("https://reqres.in/api/users/" ++ string_of_int(id))
       |> then_(Fetch.Response.json)
@@ -87,36 +87,36 @@ let make = _children => {
       ReasonReact.Update({...state, error: Some(message)})
     },
   render: self =>
-    <div onClick=(self.handle(handleClick))>
-      (
+    <div onClick={self.handle(handleClick)}>
+      {
         str(
           "Click this text to call the API (requests for user id > 12 are \
            expected to fail)",
         )
-      )
-      (
+      }
+      {
         switch (self.state.user) {
         | Some(user) =>
           <p>
-            <img src=user.avatar />
+            <img src={user.avatar} />
             <br />
-            (str(user.first_name ++ " " ++ user.last_name))
+            {str(user.first_name ++ " " ++ user.last_name)}
           </p>
         | None => <p />
         }
-      )
-      (
+      }
+      {
         switch (self.state.error) {
         | Some(error) =>
           <p
-            style=(
+            style={
               ReactDOMRe.Style.make(~color="red", ~fontStyle="italic", ())
-            )>
-            (str("There was a problem retrieving the data: "))
-            (str(error))
+            }>
+            {str("There was a problem retrieving the data: ")}
+            {str(error)}
           </p>
         | None => <p />
         }
-      )
+      }
     </div>,
 };
