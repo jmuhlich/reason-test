@@ -1,5 +1,3 @@
-[%%debugger.chrome];
-
 open Belt;
 
 type user = {
@@ -61,62 +59,57 @@ type action =
   | ApiResponse(user)
   | ApiError(string);
 
-let component = ReasonReact.reducerComponent("Component3");
-
-let handleClick = (_event, self) =>
+let handleClick = dispatch =>
   ApiClient.getUser(Random.int(25) + 1)
   |> Js.Promise.then_(result => {
        switch (result) {
-       | Result.Ok(user) => self.ReasonReact.send(ApiResponse(user))
-       | Result.Error(message) => self.ReasonReact.send(ApiError(message))
+       | Result.Ok(user) => dispatch(ApiResponse(user))
+       | Result.Error(message) => dispatch(ApiError(message))
        };
        Js.Promise.resolve();
      })
   |> ignore;
 
-let str = ReasonReact.string;
+[@react.component]
+let make = () => {
+  let (state, dispatch) =
+    React.useReducer(
+      (state, action) =>
+        switch (action) {
+        | ApiResponse(newUser) => {user: Some(newUser), error: None}
+        | ApiError(message) => {...state, error: Some(message)}
+        },
+      {user: None, error: None},
+    );
 
-let make = _children => {
-  ...component,
-  initialState: () => {user: None, error: None},
-  reducer: (action, state) =>
-    switch (action) {
-    | ApiResponse(newUser) =>
-      ReasonReact.Update({user: Some(newUser), error: None})
-    | ApiError(message) =>
-      ReasonReact.Update({...state, error: Some(message)})
-    },
-  render: self =>
-    <div onClick={self.handle(handleClick)}>
-      {
-        str(
-          "Click this text to call the API (requests for user id > 12 are \
-           expected to fail)",
-        )
+  <div onClick={_ => handleClick(dispatch)}>
+    {
+      React.string(
+        "Click this text to call the API (requests for user id > 12 are \
+         expected to fail)",
+      )
+    }
+    {
+      switch (state.user) {
+      | Some(user) =>
+        <p>
+          <img src={user.avatar} />
+          <br />
+          {React.string(user.first_name ++ " " ++ user.last_name)}
+        </p>
+      | None => ReasonReact.null
       }
-      {
-        switch (self.state.user) {
-        | Some(user) =>
-          <p>
-            <img src={user.avatar} />
-            <br />
-            {str(user.first_name ++ " " ++ user.last_name)}
-          </p>
-        | None => <p />
-        }
+    }
+    {
+      switch (state.error) {
+      | Some(error) =>
+        <p
+          style={ReactDOMRe.Style.make(~color="red", ~fontStyle="italic", ())}>
+          {React.string("There was a problem retrieving the data: ")}
+          {React.string(error)}
+        </p>
+      | None => ReasonReact.null
       }
-      {
-        switch (self.state.error) {
-        | Some(error) =>
-          <p
-            style={
-              ReactDOMRe.Style.make(~color="red", ~fontStyle="italic", ())
-            }>
-            {str("There was a problem retrieving the data: ")}
-            {str(error)}
-          </p>
-        | None => <p />
-        }
-      }
-    </div>,
+    }
+  </div>;
 };
