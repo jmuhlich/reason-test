@@ -4,31 +4,44 @@ module Decode = {
   let user = json =>
     Json.Decode.{
       id: json |> field("id", int),
-      first_name: json |> field("first_name", string),
-      last_name: json |> field("last_name", string),
-      avatar: json |> field("avatar", string),
+      username: json |> field("username", string),
+      roles: json |> field("roles", array(string)),
+      full_name: json |> field("full_name", string),
+      email: json |> field("email", string),
     };
-  let userResponse = json => Json.Decode.{data: json |> field("data", user)};
-  let usersResponse = json =>
-    Json.Decode.{
-      page: json |> field("page", int),
-      per_page: json |> field("per_page", int),
-      total: json |> field("total", int),
-      total_pages: json |> field("total_pages", int),
-      data: json |> field("data", array(user)),
-    };
+  let session = json => Json.Decode.{user: json |> field("user", user)};
+  let sessionResponse = json =>
+    Json.Decode.{session: json |> field("session", session)};
+};
+
+module Encode = {
+  let loginRequest = r =>
+    Json.Encode.(
+      object_([
+        ("username", string(r.username)),
+        ("password", string(r.password)),
+      ])
+    );
 };
 
 type apiResult('a) = Js.Promise.t(Belt.Result.t('a, string));
 
-let getUser = (id: int): apiResult(user) =>
+let login = (username: string, password: string): apiResult(session) => {
+  let payload: loginRequest = {username, password};
+  let body =
+    Fetch.BodyInit.make(payload |> Encode.loginRequest |> Json.stringify);
+  let headers = Fetch.HeadersInit.make({"Content-Type": "application/json"});
+  let request = Fetch.RequestInit.make(~method_=Post, ~body, ~headers, ());
   Js.Promise.(
-    Fetch.fetch("https://reqres.in/api/users/" ++ string_of_int(id))
+    Fetch.fetchWithInit("/api/v0/login", request)
     |> then_(Fetch.Response.json)
     |> then_(json => {
-         let response = Decode.userResponse(json);
-         let user = response.data;
-         resolve(Belt.Result.Ok(user));
+         let response = Decode.sessionResponse(json);
+         let session = response.session;
+         resolve(Belt.Result.Ok(session));
        })
-    |> catch(_err => resolve(Belt.Result.Error({j|API error (user=$id)|j})))
+    |> catch(_err =>
+         resolve(Belt.Result.Error({j|API error (username=$username)|j}))
+       )
   );
+};

@@ -4,7 +4,7 @@ type state = {
 };
 
 type action =
-  | ApiResponse(Models.user)
+  | ApiResponse(Models.session)
   | ApiError(string);
 
 [@react.component]
@@ -15,7 +15,7 @@ let make = (~id: string) => {
     React.useReducer(
       (_state, action) =>
         switch (action) {
-        | ApiResponse(newUser) => {user: Some(newUser), error: None}
+        | ApiResponse(session) => {user: Some(session.user), error: None}
         | ApiError(message) => {user: None, error: Some(message)}
         },
       {user: None, error: None},
@@ -23,7 +23,7 @@ let make = (~id: string) => {
 
   React.useEffect1(
     () => {
-      Api.getUser(id)
+      Api.login("jlm26", "hunter2")
       |> Js.Promise.then_(result => {
            switch (result) {
            | Belt.Result.Ok(user) => dispatch(ApiResponse(user))
