@@ -1,3 +1,5 @@
+open Belt;
+
 type user = {
   id: int,
   username: string,
@@ -14,3 +16,12 @@ type loginRequest = {
 };
 
 type sessionResponse = {session};
+
+type canonical = {
+  id: int,
+  type_: string,
+  name: string,
+  alternate_names: option(array(string)),
+};
+
+type canonicalResponse = {canonicals: array(canonical)};

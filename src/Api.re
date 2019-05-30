@@ -1,4 +1,5 @@
 open Models;
+open Belt;
 
 module Decode = {
   let user = json =>
@@ -12,6 +13,16 @@ module Decode = {
   let session = json => Json.Decode.{user: json |> field("user", user)};
   let sessionResponse = json =>
     Json.Decode.{session: json |> field("session", session)};
+  let canonical = json =>
+    Json.Decode.{
+      id: json |> field("id", int),
+      type_: json |> field("type", string),
+      name: json |> field("name", string),
+      alternate_names:
+        json |> optional(field("alternate_names", array(string))),
+    };
+  let canonicalResponse = json =>
+    Json.Decode.{canonicals: json |> field("canonicals", array(canonical))};
 };
 
 module Encode = {
@@ -42,6 +53,23 @@ let login = (username: string, password: string): apiResult(session) => {
        })
     |> catch(_err =>
          resolve(Belt.Result.Error({j|API error (username=$username)|j}))
+       )
+  );
+};
+
+let getCanonical = (id: int): apiResult(canonical) => {
+  let headers = Fetch.HeadersInit.make({"Content-Type": "application/json"});
+  let request = Fetch.RequestInit.make(~method_=Get, ~headers, ());
+  Js.Promise.(
+    Fetch.fetchWithInit("/api/v0/canonical/" ++ string_of_int(id), request)
+    |> then_(Fetch.Response.json)
+    |> then_(json => {
+         let response = Decode.canonicalResponse(json);
+         let canonical = Array.getExn(response.canonicals, 0);
+         resolve(Belt.Result.Ok(canonical));
+       })
+    |> catch(_err =>
+         resolve(Belt.Result.Error({j|API error (canonical id=$id)|j}))
        )
   );
 };
